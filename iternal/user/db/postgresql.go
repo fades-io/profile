@@ -47,7 +47,7 @@ func (r *repository) Create(ctx context.Context, user *user.User) error {
 
 func (r *repository) FindOne(ctx context.Context, username string) (user.User, error) {
 	q := `
-		SELECT id FROM public.user WHERE username = $1
+		SELECT id FROM public.user WHERE username = $1 
 	`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", formatQuery(q)))
 
@@ -62,15 +62,21 @@ func (r *repository) FindOne(ctx context.Context, username string) (user.User, e
 
 func (r *repository) Update(ctx context.Context, user user.User) error {
 	q := `
-		UPDATE public.user SET email = $2, password = $3, level = $4, daysinrow = $5, daysinweek = $6,  doessendpushups = $7, theme = $8, language = $9, image = $10 WHERE username = $1
+		UPDATE public.user SET email = $2, password = $3, level = $4, daysinrow = $5, daysinweek = $6,  doessendpushups = $7, theme = $8, language = $9, image = $10 WHERE username = $1 returning image
 	`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", formatQuery(q)))
 
 	json, _ := json.Marshal(user.DaysInWeek)
 
-	err := r.client.QueryRow(ctx, q, user.Username, user.Email, user.Password, user.Level, user.DaysInRow, string(json), user.DoesSendPushUps, user.Theme, user.Language, user.Image)
-	if err != nil {
-		return err.Scan()
+	if err := r.client.QueryRow(ctx, q, user.Username, user.Email, user.Password, user.Level, user.DaysInRow, string(json), user.DoesSendPushUps, user.Theme, user.Language, user.Image).Scan(&user.Id); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			pgErr = err.(*pgconn.PgError)
+			newErr := fmt.Errorf(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s, Code: %s, SQLState: %s", pgErr.Message, pgErr.Detail, pgErr.Where, pgErr.Code, pgErr.SQLState()))
+			r.logger.Error(newErr)
+			return newErr
+		}
+		return err
 	}
 
 	return nil
@@ -79,13 +85,20 @@ func (r *repository) Update(ctx context.Context, user user.User) error {
 
 func (r *repository) Delete(ctx context.Context, username string) error {
 	q := `
-		DELETE FROM public.user WHERE username = $1 
+		DELETE FROM public.user WHERE username = $1 returning id
 	`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", formatQuery(q)))
 
-	err := r.client.QueryRow(ctx, q, username)
-	if err != nil {
-		return err.Scan()
+	user := user.User{}
+	if err := r.client.QueryRow(ctx, q, username).Scan(&user.Id); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			pgErr = err.(*pgconn.PgError)
+			newErr := fmt.Errorf(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s, Code: %s, SQLState: %s", pgErr.Message, pgErr.Detail, pgErr.Where, pgErr.Code, pgErr.SQLState()))
+			r.logger.Error(newErr)
+			return newErr
+		}
+		return err
 	}
 
 	return nil

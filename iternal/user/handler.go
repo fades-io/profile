@@ -97,13 +97,13 @@ func (h *handler) PutUser(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Here is a string...."))
+	w.Write([]byte("Operation successful"))
 
 	return nil
 }
 
 func (h *handler) DeleteUser(w http.ResponseWriter, r *http.Request) error {
-	err := h.repository.Delete(context.TODO(), r.FormValue("bodu"))
+	err := h.repository.Delete(context.TODO(), r.FormValue("Username"))
 	if err != nil {
 		fmt.Println(err)
 
@@ -112,7 +112,7 @@ func (h *handler) DeleteUser(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Here is a string...."))
+	w.Write([]byte("Operation successful"))
 
 	return nil
 }
