@@ -546,7 +546,6 @@ func (h *handler) DeleteUser(w http.ResponseWriter, r *http.Request) error {
 ``` 
 
 Литература:
-Применение матрицы и диаграммы компетенций. – URL: https://habr.com/ru/ post/443162/(дата обращения: 16.04.2021).
 
 1. Структурирование вашего приложения Golang: плоская структура против многоуровневой архитектуры – URL: <https://dev-gang.ru/article/strukturirovanie-vashego-prilozhenija-golang-ploskaja-struktura-protiv-mnogourovnevoi-arhitektury-0ddxmdrjws/>
 1. Чистая архитектура – URL: <https://habr.com/ru/post/269589/>
