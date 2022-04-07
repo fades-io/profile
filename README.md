@@ -109,9 +109,10 @@ zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 log.Info().Msg("hello world")
 
 }
-```
+
 
  Output: {"time":1516134303,"level":"info","message":"hello world"}
+ ```
 
 Так же, доступна функция поставить общий уровень логирования с помощью команды SetGlobalLevel и пакете zerolog 
 
@@ -124,34 +125,27 @@ log.Info().Msg("hello world")
 package main
 
 import (
-
-`    `"github.com/rs/zerolog"
-
-`    `"github.com/rs/zerolog/log"
-
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
-`    `zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-`    `log.Debug().
-
-`        `Str("Scale", "833 cents").
-
-`        `Float64("Interval", 833.09).
-
-`        `Msg("Fibonacci is everywhere")
-
-
-
-`    `log.Debug().
-
-`        `Str("Name", "Tom").
-
-`        `Send()
-
+    log.Debug().
+        Str("Scale", "833 cents").
+        Float64("Interval", 833.09).
+        Msg("Fibonacci is everywhere")
+    
+    log.Debug().
+        Str("Name", "Tom").
+        Send()
 }
+
+// Output: {"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}
+// Output: {"level":"debug","Name":"Tom","time":1562212768}
+
+
 
 // Output: {"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}
 
@@ -163,87 +157,40 @@ func main() {
 package main
 
 import (
+	"errors"
 
-`	`"errors"
-
-`	`"github.com/rs/zerolog"
-
-`	`"github.com/rs/zerolog/log"
-
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
-`	`zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-`	`err := errors.New("seems we have an error here")
-
-`	`log.Error().Err(err).Msg("")
-
+	err := errors.New("seems we have an error here")
+	log.Error().Err(err).Msg("")
 }
 
 // Output: {"level":"error","error":"seems we have an error here","time":1609085256}
 ```
-``` go
-package main
 
-import (
-
-`    `"errors"
-
-`    `"github.com/rs/zerolog"
-
-`    `"github.com/rs/zerolog/log"
-
-)
-
-func main() {
-
-`    `err := errors.New("A repo man spends his life getting into tense situations")
-
-`    `service := "myservice"
-
-`    `zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-`    `log.Fatal().
-
-`        `Err(err).
-
-`        `Str("service", service).
-
-`        `Msgf("Cannot start %s", service)
-
-}
-
-// Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
-
-//         exit status 1
-```
 
 В папке utils обычно оставляются самописные файлы, которые необходимы для запуска этого проекта, 
 
 Так в моем проекте оставлено repeatable, который отвечает за комфортный запуск docker, который просто постоянно перезапускает модули, которые не запустились с первого раза, это распространенная проблема и это лишь один из вариантов решения этой проблемы 
 ``` go
 func DoWithTries(fn func() error, attemtps int, delay time.Duration) (err error) {
+	for attemtps > 0 {
+		if err = fn(); err != nil {
+			time.Sleep(delay)
+			attemtps--
 
-`  `for attemtps > 0 {
+			continue
+		}
 
-`     `if err = fn(); err != nil {
+		return nil
+	}
 
-`        `time.Sleep(delay)
-
-`        `attemtps--
-
-`        `continue
-
-`     `}
-
-`     `return nil
-
-`  `}
-
-`  `return
-
+	return
 }
 ```
 
@@ -294,66 +241,44 @@ pgx это чистый го драйвер и тулкит для postgresql, �
 файл еррор содержит переменную для найденной ошибки
 ``` go
 var (
-
-ErrNotFound = NewAppError(nil, "not found", "", "US-000003")
-
+	ErrNotFound = NewAppError(nil, "not found", "", "US-000003")
 )
 ``` 
 
  структура для определенной ошибки, которая содержит саму ошибку, описание ошибки, комментарий и код ошибки
 ``` go
 type AppError struct {
-
-Err error  `json:"-"`
-
-Message string `json:"message,omitempty"`
-
-DeveloperMessage string `json:"developer\_message,omitempty"`
-
-Code string `json:"code,omitempty"`
-
+	Err              error  `json:"-"`
+	Message          string `json:"message,omitempty"`
+	DeveloperMessage string `json:"developer_message,omitempty"`
+	Code             string `json:"code,omitempty"`
 }
 ```
 
 так же этот файл содержит различные методы по обработке ошибок, такие как просто возвращение ошибки, получение ошибки из обертки и побитовый перевод ошибки в нашу структуру 
 
 ```go
-func (e \*AppError) Error() string {
-
-return e.Message
-
+func (e *AppError) Error() string {
+	return e.Message
 }
 
-func (e \*AppError) Unwrap() error { return e.Err }
+func (e *AppError) Unwrap() error { return e.Err }
 
-func (e \*AppError) Marshal() []byte {
-
-marshal, err := json.Marshal(e)
-
-if err != nil {
-
-     return nil
-
-  }
-
-  return marshal
-
+func (e *AppError) Marshal() []byte {
+	marshal, err := json.Marshal(e)
+	if err != nil {
+		return nil
+	}
+	return marshal
 }
 
-func NewAppError(err error, message, developerMessage, code string) \*AppError {
-
-  return &AppError{
-
-     Err: err,
-
-     Message:          message,
-
-     DeveloperMessage: developerMessage,
-
-     Code:             code,
-
-  }
-
+func NewAppError(err error, message, developerMessage, code string) *AppError {
+	return &AppError{
+		Err:              err,
+		Message:          message,
+		DeveloperMessage: developerMessage,
+		Code:             code,
+	}
 }
 ```
 в middleware находится функция занимающаяся основной обработкой ошибки 
@@ -407,198 +332,133 @@ func Middleware(h appHandler) http.HandlerFunc {
 структуру конфигураций, который указывает, на все параметры запуска, порты для прослушек и информацию по нашей базы данных 
 ``` go
 type Config struct {
-
-  IsDebug \*bool `yaml:"is\_debug" env-required:"true"`
-
-  Listen  struct {
-
-     Type   string `yaml:"type" env-default:"port"`
-
-     BindIP string `yaml:"bind\_ip" env-default:"127.0.0.1"`
-
-     Port   string `yaml:"port" env-default:"8080"`
-
-  } `yaml:"listen"`
-
-  Storage StorageConfig `yaml:"storage"`
-
+	IsDebug *bool `yaml:"is_debug" env-required:"true"`
+	Listen  struct {
+		Type   string `yaml:"type" env-default:"port"`
+		BindIP string `yaml:"bind_ip" env-default:"127.0.0.1"`
+		Port   string `yaml:"port" env-default:"8080"`
+	} `yaml:"listen"`
+	Storage StorageConfig `yaml:"storage"`
 }
 
 type StorageConfig struct {
-
-  Host     string `json:"host"`
-
-  Port     string `json:"port"`
-
-  Database string `json:"database"`
-
-  Username string `json:"username"`
-
-  Password string `json:"password"`
-
-}
-
-также имеется метод, возвращий инстанс настроек 
-
-func GetConfig() \*Config {
-
-  once.Do(func() {
-
-     logger := logging.GetLogger()
-
-     logger.Info("read application configuration")
-
-     instance = &Config{}
-
-     if err := cleanenv.ReadConfig("config.yml", instance); err != nil {
-
-        help, \_ := cleanenv.GetDescription(instance, nil)
-
-        logger.Info(help)
-
-        logger.Fatal(err)
-
-     }
-
-  })
-
-  return instance
-
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	Database string `json:"database"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 ```
 
-в хендлере пока находится интерфейс регистрации роутера
+также имеется метод, возвращий инстанс настроек 
+
+``` go
+func GetConfig() *Config {
+	once.Do(func() {
+		logger := logging.GetLogger()
+		logger.Info("read application configuration")
+		instance = &Config{}
+		if err := cleanenv.ReadConfig("config.yml", instance); err != nil {
+			help, _ := cleanenv.GetDescription(instance, nil)
+			logger.Info(help)
+			logger.Fatal(err)
+		}
+	})
+	return instance
+}
+
+```
+
+в Handler пока находится интерфейс регистрации роутера
 
 ``` go
 type Handler interface {
-
-  Register(router \*httprouter.Router)
-
+	Register(router *httprouter.Router)
 }
+
 ```
 
 в файле model хранятся все структуры пользователя, 
 ```go
 type DaysInWeek struct {
-
 	DayOfWeek string `json:"dayOfWeek"`
-
 	IsEntered bool   `json:"isEntered"`
-
 	Time      string `json:"time"`
-
 }
 
 type User struct {
-
 	Id              string       `json:"id"`
-
 	Username        string       `json:"username"`
-
 	Email           string       `json:"email"`
-
 	Password        string       `json:"password"`
-
 	Level           string       `json:"level"`
-
 	DaysInRow       string       `json:"daysInRow"`
-
 	DaysInWeek      []DaysInWeek `json:"daysInWeek"`
-
 	DoesSendPushUps bool         `json:"doesSendPushUps"`
-
 	Theme           string       `json:"theme"`
-
 	Language        string       `json:"language"`
-
 	Image           string       `json:"image"`
-
 }
 ```
 в storage реализован интерфейс репозитория, который отвечает, какие команды поддерживает микросервис относительно пользователя
 ``` go
 type Repository interface {
-
-  Create(ctx context.Context, author \*User) error
-
-  FindOne(ctx context.Context, id string) (User, error)
-
-  Update(ctx context.Context, user User) error
-
-  Delete(ctx context.Context, id string) error
-
+	Create(ctx context.Context, user *User) error
+	FindAll(ctx context.Context) (u []User, err error)
+	FindOne(ctx context.Context, id string) (User, error)
+	Update(ctx context.Context, user User) error
+	Delete(ctx context.Context, id string) error
 }
 ```
 в postgresql идет основная работа с базой данной моего микросервиса, он содержит реализацию всех функций из storage, а также вспомогательный метод formatQuery, который убирает все пробелы и табы, этот метод необходим для более удобного, а главного удобного понятного написания запросов в postgresql 
 ``` go
 func formatQuery(q string) string {
-
-  return strings.ReplaceAll(strings.ReplaceAll(q, "\t", ""), "\n", " ")
-
+	return strings.ReplaceAll(strings.ReplaceAll(q, "\t", ""), "\n", " ")
 }
 
 func (r *repository) Create(ctx context.Context, user *user.User) error {
 
-q := `
+	q := `
+		INSERT INTO public.user 
+				(id, username, email, password, level, daysinrow,daysinweek, doessendpushups, theme, language, image)
+		VALUES 
+		       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id
+	`
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", formatQuery(q)))
+	if err := r.client.QueryRow(ctx, q, user.Id, user.Username, user.Email, user.Password, user.Level, user.DaysInRow, user.DaysInWeek, user.DoesSendPushUps, user.Theme, user.Language, user.Image).Scan(&user.Id); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			pgErr = err.(*pgconn.PgError)
+			newErr := fmt.Errorf(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s, Code: %s, SQLState: %s", pgErr.Message, pgErr.Detail, pgErr.Where, pgErr.Code, pgErr.SQLState()))
+			r.logger.Error(newErr)
+			return newErr
+		}
+		return err
+	}
 
-INSERT INTO public.user
-
-           (id, username, email, password, level, daysinrow,daysinweek, doessendpushups, theme, language, image)
-
-     VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-
-     RETURNING id
-`
-
-  r.logger.Trace(fmt.Sprintf("SQL Query: %s", formatQuery(q)))
-
-`  `if err := r.client.QueryRow(ctx, q, user.Id, user.Username, user.Email, user.Password, user.Level, user.DaysInRow, user.DaysInWeek, user.DoesSendPushUps, user.Theme, user.Language, user.Image).Scan(&user.Id); err != nil {
-
-     var pgErr \*pgconn.PgError
-
-     if errors.As(err, &pgErr) {
-
-        pgErr = err.(\*pgconn.PgError)
-
-        newErr := fmt.Errorf(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s, Code: %s, SQLState: %s", pgErr.Message, pgErr.Detail, pgErr.Where, pgErr.Code, pgErr.SQLState()))
-
-        r.logger.Error(newErr)
-
-        return newErr
-     }
-
-     return err
-
-  }
-
-  return nil
-
+	return nil
 }
 ```
 фактически все методы занимаются подставлением наших переменных в sql запроса, который создается с помощью ранее опиисанной библиотеки pgconn, разбираая на примере создания пользователя сначала иницилизация метода отображается в логах, потом подставляются переменные в sql запрос, если происходит ошибка, то происходит обертка ошибки, полученная из пакета pgconn.
 
 запрос для поиска одного пользователя
 ``` go
-q := `
-
-`  `SELECT id FROM public.user WHERE username = $1
-
-`
+	q := `
+		SELECT id FROM public.user WHERE username = $1 
+	`
 ```
 запрос на обновление 
 ``` go
-q := `
-  UPDATE public.user SET email = $2, password = $3, level = $4, daysinrow = $5, daysinweek = $6,  doessendpushups = $7, theme = $8, language = $9, image = $10 WHERE username = $1 returning image
-
-`
+	q := `
+		UPDATE public.user SET email = $2, password = $3, level = $4, daysinrow = $5, daysinweek = $6,  doessendpushups = $7, theme = $8, language = $9, image = $10 WHERE username = $1 returning image
+	`
 ```
 запрос на удаление 
 ``` go
-q := `
-
-  DELETE FROM public.user WHERE username = $1 returning id
-
-`
+	q := `
+		DELETE FROM public.user WHERE username = $1 returning id
+	`
 ```
 
 
@@ -606,122 +466,82 @@ Hangler занимается связкой нашей main и запросов 
 
 все сетевые запросы обрабатываются в методе register, который в зависимости от типа запроса и url строки вызывает разные методы 
 ``` go
-func (h \*handler) Register(router \*httprouter.Router) {
-
-  router.HandlerFunc(http.*MethodPost*, *usersURL*, apperror.Middleware(h.GetList))
-
-  router.HandlerFunc(http.*MethodGet*, *userURL*, apperror.Middleware(h.GetUser))
-
-  router.HandlerFunc(http.*MethodPut*, *userURL*, apperror.Middleware(h.PutUser))
-
-  router.HandlerFunc(http.*MethodDelete*, *userURL*, apperror.Middleware(h.DeleteUser))
+func (h *handler) Register(router *httprouter.Router) {
+	router.HandlerFunc(http.MethodPost, usersURL, apperror.Middleware(h.GetList))
+	router.HandlerFunc(http.MethodGet, userURL, apperror.Middleware(h.GetUser))
+	router.HandlerFunc(http.MethodPut, userURL, apperror.Middleware(h.PutUser))
+	router.HandlerFunc(http.MethodDelete, userURL, apperror.Middleware(h.DeleteUser))
 
 }
 ```
 в случае получения отдельного пользователя, вызывается метод GetUser, который получает из тела запроса id и делает с помощью него запрос в бд
 ``` go
-func (h \*handler) GetUser(w http.ResponseWriter, r \*http.Request) error {
+func (h *handler) GetUser(w http.ResponseWriter, r *http.Request) error {
+	user, err := h.repository.FindOne(context.TODO(), r.FormValue("username"))
+	if err != nil {
+		w.WriteHeader(400)
+		return err
+	}
 
-  user, err := h.repository.FindOne(context.TODO(), r.FormValue("username"))
+	allBytes, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
 
-  if err != nil {
+	w.WriteHeader(http.StatusOK)
+	w.Write(allBytes)
 
-     w.WriteHeader(400)
-
-     return err
-
-  }
-
-  allBytes, err := json.Marshal(user)
-
-  if err != nil {
-
-     return err
-
-  }
-
-  w.WriteHeader(http.*StatusOK*)
-
-  w.Write(allBytes)
-
-  return nil
-
+	return nil
 }
 ```
 
 в случае получения создания нового пользователя, вызывается метод PutUser, который создает нового пользователя из тела запроса, а потом вызывает метод по внесению пользователя в базу данных.
 ``` go
-func (h \*handler) PutUser(w http.ResponseWriter, r \*http.Request) error {
+func (h *handler) PutUser(w http.ResponseWriter, r *http.Request) error {
+	var DaysInWeek []DaysInWeek
 
-  var DaysInWeek []DaysInWeek
+	json.Unmarshal([]byte(r.FormValue("DaysInWeek")), &DaysInWeek)
 
-  json.Unmarshal([]byte(r.FormValue("DaysInWeek")), &DaysInWeek)
+	usr := User{
+		Username:        r.FormValue("Username"),
+		Email:           r.FormValue("Email"),
+		Password:        r.FormValue("Password"),
+		Level:           r.FormValue("Level"),
+		DaysInRow:       r.FormValue("DaysInRow"),
+		DaysInWeek:      DaysInWeek,
+		DoesSendPushUps: false,
+		Theme:           r.FormValue("Theme"),
+		Language:        r.FormValue("Language"),
+		Image:           r.FormValue("Image"),
+	}
+	err := h.repository.Update(context.TODO(), usr)
+	if err != nil {
+		w.WriteHeader(400)
+		return err
+	}
 
-  usr := User{
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Operation successful"))
 
-     Username:        r.FormValue("Username"),
-
-     Email:           r.FormValue("Email"),
-
-     Password:        r.FormValue("Password"),
-
-     Level:           r.FormValue("Level"),
-
-     DaysInRow:       r.FormValue("DaysInRow"),
-
-     DaysInWeek:      DaysInWeek,
-
-     DoesSendPushUps: false,
-
-     Theme:           r.FormValue("Theme"),
-
-     Language:        r.FormValue("Language"),
-
-     Image:           r.FormValue("Image"),
-
-  }
-
-  err := h.repository.Update(context.TODO(), usr)
-
-  if err != nil {
-
-     w.WriteHeader(400)
-
-     return err
-
-  }
-
-  w.WriteHeader(http.*StatusOK*)
-
-  w.Write([]byte("Operation successful"))
-
-  return nil
-
+	return nil
 }
 ```
 
 в случае удаления отдельного пользователя, вызывается метод DeleteUser, который получает из тела запроса id и делает с помощью него запрос в бд на удаление 
 ``` go
-func (h \*handler) DeleteUser(w http.ResponseWriter, r \*http.Request) error {
+func (h *handler) DeleteUser(w http.ResponseWriter, r *http.Request) error {
+	err := h.repository.Delete(context.TODO(), r.FormValue("Username"))
+	if err != nil {
+		fmt.Println(err)
 
-  err := h.repository.Delete(context.TODO(), r.FormValue("Username"))
+		w.WriteHeader(400)
+		return err
+	}
 
-  if err != nil {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Operation successful"))
 
-     fmt.Println(err)
-
-     w.WriteHeader(400)
-
-     return err
-
-  }
-
-  w.WriteHeader(http.*StatusOK*)
-
-  w.Write([]byte("Operation successful"))
-
-  return nil
-
+	return nil
 }
 ``` 
 
