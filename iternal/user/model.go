@@ -19,7 +19,3 @@ type User struct {
 	Language        string       `json:"language"`
 	Image           string       `json:"image"`
 }
-
-//type Token struct {
-//	UserToken string `json:"user_token"`
-//}
