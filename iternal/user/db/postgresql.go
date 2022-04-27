@@ -112,7 +112,6 @@ func NewRepository(client postgresql.Client, logger *logging.Logger) user.Reposi
 	}
 }
 
-// Do we need it?
 func (r *repository) FindAll(ctx context.Context) (u []user.User, err error) {
 	q := `
 		SELECT id, username FROM public.user;
