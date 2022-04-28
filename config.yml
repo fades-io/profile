@@ -1,0 +1,10 @@
+is_debug: true
+listen:
+  type: port
+  port: 1234
+storage:
+  host: localhost
+  port: 54333
+  database: guest
+  username: guest
+  password: guest
